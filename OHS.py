@@ -8,42 +8,40 @@ class Course:
         self.slope = sl
 
 class Profile:
-    recents = [0.00, 0.00, 0.00]
-    topTwenty = [0.00, 0.00, 0.00, 0.00, 0.00,
-                0.00, 0.00, 0.00, 0.00, 0.00, 
-                0.00, 0.00, 0.00, 0.00, 0.00, 
-                0.00, 0.00, 0.00, 0.00, 0.00,]
-    def __init__(self, ttt, r):
-        self.topTwenty = ttt
-        self.recents = r
+    lastTwenty = [-100, -100, -100, -100, -100,
+                    -100, -100, -100, -100, -100, 
+                    -100, -100, -100, -100, -100, 
+                    -100, -100, -100, -100, -100,]
+    def __init__(self, lt):
+        self.lastTwenty = lt
     def Add(self, diff):
-        #Add to recents (Queue)
-        self.recents[0] = self.recents[1]
-        self.recents[1] = self.recents[2]
-        self.recents[2] = diff
-        #Add to top twenty (if it fits)
-        i = 0
-        for x in self.topTwenty:
-            if diff < x:
-                self.Add(x) #Shift scores
-                self.topTwenty[i] = diff
-                break
+        i = 1
+        j = 0
+        while i < len(self.lastTwenty):
+            self.lastTwenty[j] = self.lastTwenty[i]
             i += 1
+            j += 1
+        self.lastTwenty[19] = diff
 
     def GetHandicap(self):
+        #find top 8
         s = 0
-        n = 23
-        for x in self.recents:
-            s += float(x)
-            if float(x) == 0:
-                n -= 1
-        for x in self.topTwenty:
-            s += float(x)
-            if float(x) == 0:
-                n -= 1
-        if n > 0:
-            return s/n
-        return "<Not Enough Data>"
+        n = 0
+        topEight = [-100, -100, -100, -100, -100, -100, -100, -100]
+        for x in self.lastTwenty:
+            i = 0
+            while i < len(topEight):
+                if (topEight[i] == -100 or x < topEight[i]) and x != -100:
+                    topEight[i] = x
+                    i = 8
+                    s += 1
+                i += 1
+        for x in topEight:
+            if float(x) != -100:
+                n += float(x)
+        if s > 0:
+            return n/s
+        return "<Not enough data>"
 
 def GetDiff(score, rating, slope):
     return (score - rating) * 113 / slope
@@ -71,40 +69,28 @@ def Save(name, Player):
     save = open(name + ".ohs", "w")
     i = 0
     while i < 20:
-        save.write(str(Player.topTwenty[i]))
+        save.write(str(Player.lastTwenty[i]))
         if i < 20 - 1:
-            save.write(",")
-        i += 1
-    save.write("|")
-    i = 0
-    while i < 3:
-        save.write(str(Player.recents[i]))
-        if i < 3 - 1:
             save.write(",")
         i += 1
     save.close()
 
 #Initialize profile (tracked handicap)
 name = str(input("Name: "))
-temprecents = [0.00, 0.00, 0.00]
-temptopTwenty = [0.00, 0.00, 0.00, 0.00, 0.00,
-                0.00, 0.00, 0.00, 0.00, 0.00, 
-                0.00, 0.00, 0.00, 0.00, 0.00, 
-                0.00, 0.00, 0.00, 0.00, 0.00,]
+tempLastTwenty = [-100, -100, -100, -100, -100,
+                -100, -100, -100, -100, -100, 
+                -100, -100, -100, -100, -100, 
+                -100, -100, -100, -100, -100,]
 try:
     save = open(name + ".ohs", "r")
     data = save.read()
     i = 0
     while i < 20:
-        temptopTwenty[i] = data.split('q')[0].split(',')[i]
-        i += 1
-    i = 0
-    while i < 3:
-        temprecents[i] = data.split('q')[1].split(',')[i]
+        tempLastTwenty[i] = float(data.split(',')[i])
         i += 1
 except:
     print("No save file found, starting new profile")
-Player = Profile(temptopTwenty, temprecents)
+Player = Profile(tempLastTwenty)
 
 #Main input loop
 while True:
@@ -125,4 +111,5 @@ while True:
     elif command == 4:
         Save(name, Player)
         print("Saved")
-    print("Invalid Input")
+    else:
+        print("Invalid Input")
